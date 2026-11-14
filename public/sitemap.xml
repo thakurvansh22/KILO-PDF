@@ -1,127 +1,127 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://YOUR-DOMAIN/</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/merge</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/merge</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/split</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/split</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/compress</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/compress</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/pdf-to-word</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/pdf-to-word</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/ocr</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/ocr</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/edit-pdf</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/edit-pdf</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/watermark</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/watermark</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/page-numbers</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/page-numbers</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/rotate</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/rotate</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/delete</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/delete</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/reorder</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/reorder</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/pdf-to-images</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/pdf-to-images</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/images-to-pdf</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/images-to-pdf</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/pdf-to-text</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/pdf-to-text</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/protect-pdf</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/protect-pdf</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/unlock-pdf</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/unlock-pdf</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/blog</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/blog</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/blog/how-to-merge-pdf-files</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/blog/how-to-merge-pdf-files</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/blog/how-to-compress-a-pdf</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/blog/how-to-compress-a-pdf</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/blog/pdf-to-word-what-to-expect</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/blog/pdf-to-word-what-to-expect</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/about</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/about</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/contact</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/privacy-policy</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/privacy-policy</loc>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://YOUR-DOMAIN/terms</loc>
+    <loc>https://HTTPS://KILOPDF.ONLINE/terms</loc>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
