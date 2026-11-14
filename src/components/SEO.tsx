@@ -44,7 +44,7 @@ export const SEO: React.FC<SEOProps> = ({
     const currentUrl =
       typeof window !== 'undefined'
         ? `${window.location.origin}${path || window.location.pathname}`
-        : `https://HTTPS://KILOPDF.ONLINE${path || '/'}`;
+        : `https://kilopdf.online${path || '/'}`;
 
     upsertMetaTag('name', 'description', description);
     upsertMetaTag('property', 'og:type', type);

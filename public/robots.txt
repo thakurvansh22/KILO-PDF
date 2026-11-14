@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://HTTPS://KILOPDF.ONLINE/sitemap.xml
+Sitemap: https://kilopdf.online/sitemap.xml
