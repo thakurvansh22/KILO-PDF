@@ -1,0 +1,6 @@
+{
+  "name": "PDF Toolkit",
+  "description": "Secure, fast, 100% client-side PDF tools. Merge, split, and extract PDF pages directly in your browser without uploading files.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
