@@ -35,7 +35,7 @@ export const Navbar: React.FC = () => {
               <span className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-1.5">
                 Kilopdf
                 <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60">
-                  Local
+                  Private
                 </span>
               </span>
             </div>
