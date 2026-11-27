@@ -27,6 +27,9 @@ import {
   Info,
   AlertCircle,
   Loader2,
+  Layers,
+  SlidersHorizontal,
+  X,
 } from 'lucide-react';
 import { FileDropzone } from '../components/FileDropzone';
 import { ProgressLoader } from '../components/ProgressLoader';
@@ -45,6 +48,8 @@ interface HistorySnapshot {
   textEdits: Record<number, Record<string, ExistingTextEdit>>;
 }
 
+const isMobileScreen = () => typeof window !== 'undefined' && window.innerWidth < 768;
+
 export const EditPdfPage: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [pdfProxy, setPdfProxy] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
@@ -55,6 +60,10 @@ export const EditPdfPage: React.FC = () => {
     width: 595.28,
     height: 841.89,
   });
+
+  // Mobile drawers
+  const [isPagesOpen, setIsPagesOpen] = useState(false);
+  const [isInspectorOpen, setIsInspectorOpen] = useState(false);
 
   // Editor states
   const [currentTool, setCurrentTool] = useState<EditorTool>('select');
@@ -144,6 +153,20 @@ export const EditPdfPage: React.FC = () => {
       const { pageCount: count } = await readPdfFile(file);
       const proxy = await getPdfDocumentProxy(file);
 
+      // Mobile: auto fit page to screen width
+      if (isMobileScreen()) {
+        try {
+          const firstPage = await proxy.getPage(1);
+          const vp = firstPage.getViewport({ scale: 1.0 });
+          const fit = (window.innerWidth - 24) / vp.width;
+          setZoomScale(Math.max(0.3, Math.min(1.25, parseFloat(fit.toFixed(2)))));
+        } catch {
+          setZoomScale(0.6);
+        }
+      } else {
+        setZoomScale(1.25);
+      }
+
       setSelectedFile(file);
       setPdfProxy(proxy);
       setPageCount(count);
@@ -160,6 +183,8 @@ export const EditPdfPage: React.FC = () => {
       setSelectedElementId(null);
       setActiveBlockId(null);
       setThumbnailUrls({});
+      setIsPagesOpen(false);
+      setIsInspectorOpen(false);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setErrorMessage(msg);
@@ -295,6 +320,13 @@ export const EditPdfPage: React.FC = () => {
         isItalic: activeBlock.isItalic,
       }
     : null;
+
+  // Mobile: auto-open inspector when an element / text block is selected
+  useEffect(() => {
+    if (isMobileScreen() && (selectedElementId || activeBlockId)) {
+      setIsInspectorOpen(true);
+    }
+  }, [selectedElementId, activeBlockId]);
 
   // Eyedropper sampling logic
   const sampleCanvasPixel = (screenX: number, screenY: number): string | null => {
@@ -596,8 +628,8 @@ export const EditPdfPage: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedElementId, elementsByPage, currentPage]);
 
-  // Dragging & Resizing Element Logic
-  const startDrag = (el: EditorElement, e: React.MouseEvent) => {
+  // Dragging & Resizing Element Logic (POINTER EVENTS: works for mouse + touch)
+  const startDrag = (el: EditorElement, e: React.PointerEvent) => {
     e.stopPropagation();
     setSelectedElementId(el.id);
     setActiveBlockId(null);
@@ -608,7 +640,7 @@ export const EditPdfPage: React.FC = () => {
     const initialX = el.x;
     const initialY = el.y;
 
-    const onMouseMove = (moveEvt: MouseEvent) => {
+    const onPointerMove = (moveEvt: PointerEvent) => {
       const deltaX = (moveEvt.clientX - startClientX) / zoomScale;
       const deltaY = (moveEvt.clientY - startClientY) / zoomScale;
 
@@ -623,20 +655,22 @@ export const EditPdfPage: React.FC = () => {
       }));
     };
 
-    const onMouseUp = () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
       setElementsByPage(latest => {
         pushState(latest, textEditsByPage);
         return latest;
       });
     };
 
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
   };
 
-  const startResize = (el: EditorElement, handle: string, e: React.MouseEvent) => {
+  const startResize = (el: EditorElement, handle: string, e: React.PointerEvent) => {
     e.stopPropagation();
     const startClientX = e.clientX;
     const startClientY = e.clientY;
@@ -645,7 +679,7 @@ export const EditPdfPage: React.FC = () => {
     const aspect = el.aspectRatio || initialWidth / initialHeight;
     const isImageOrSig = el.type === 'image' || el.type === 'signature';
 
-    const onMouseMove = (moveEvt: MouseEvent) => {
+    const onPointerMove = (moveEvt: PointerEvent) => {
       const deltaX = (moveEvt.clientX - startClientX) / zoomScale;
       const deltaY = (moveEvt.clientY - startClientY) / zoomScale;
 
@@ -662,17 +696,19 @@ export const EditPdfPage: React.FC = () => {
       }));
     };
 
-    const onMouseUp = () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
       setElementsByPage(latest => {
         pushState(latest, textEditsByPage);
         return latest;
       });
     };
 
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
   };
 
   // Compile & Download
@@ -717,6 +753,8 @@ export const EditPdfPage: React.FC = () => {
     setResultData(null);
     setSelectedElementId(null);
     setActiveBlockId(null);
+    setIsPagesOpen(false);
+    setIsInspectorOpen(false);
     clearThumbnailCache();
   };
 
@@ -724,126 +762,41 @@ export const EditPdfPage: React.FC = () => {
   const winAnsiCheck = activeTextEdit ? checkWinAnsiSafe(activeTextEdit.newText) : { safe: true, unsupportedChars: [] };
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)]">
+    <div className="flex flex-col min-h-[calc(100dvh-4rem)] overflow-x-hidden">
       <SEO
         title={TOOL_GUIDES['edit-pdf'].seoTitle}
         description={TOOL_GUIDES['edit-pdf'].seoDescription}
         path={TOOL_GUIDES['edit-pdf'].route}
       />
       {/* Top Main Bar */}
-      <div className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2.5 flex items-center justify-between gap-4 z-20">
-        <div className="flex items-center gap-3">
+      <div className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 sm:px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 md:gap-4 z-20">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <Link
             to="/"
-            className="p-1.5 rounded-lg text-zinc-500 hover:text-indigo-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="p-1.5 rounded-lg text-zinc-500 hover:text-indigo-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shrink-0"
             title="Back to All Tools"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-indigo-600 text-white font-bold text-xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="p-1.5 rounded-lg bg-indigo-600 text-white font-bold text-xs shrink-0">
               <FileEdit className="w-4 h-4" />
             </div>
-            <span className="font-bold text-sm text-zinc-900 dark:text-white truncate max-w-[200px] sm:max-w-xs">
+            <span className="font-bold text-sm text-zinc-900 dark:text-white truncate max-w-[130px] sm:max-w-xs">
               {selectedFile ? selectedFile.name : 'Visual PDF Editor'}
             </span>
           </div>
         </div>
 
         {selectedFile && (
-          /* Editor Top Toolbar Tools */
-          <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-200 dark:border-zinc-700">
-            <button
-              type="button"
-              onClick={() => {
-                setCurrentTool('select');
-                setActiveBlockId(null);
-              }}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                currentTool === 'select'
-                  ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-xs ring-1 ring-indigo-500/20'
-                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
-              }`}
-              title="Select / Move Elements"
-            >
-              <MousePointer className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Select</span>
-            </button>
-
-            {/* EDIT TEXT (NEW) */}
-            <button
-              type="button"
-              onClick={() => {
-                setCurrentTool('editText');
-                setSelectedElementId(null);
-              }}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                currentTool === 'editText'
-                  ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-xs ring-1 ring-indigo-500/20'
-                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
-              }`}
-              title="Edit Existing Text in PDF"
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Edit Text</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setCurrentTool('text');
-                setActiveBlockId(null);
-              }}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                currentTool === 'text'
-                  ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-xs ring-1 ring-indigo-500/20'
-                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
-              }`}
-              title="Add New Text Box to Page"
-            >
-              <Type className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Add Text</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => imageUploadInputRef.current?.click()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50 cursor-pointer"
-              title="Add Image to Page"
-            >
-              <ImageIcon className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Add Image</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsSignatureModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50 cursor-pointer"
-              title="Add Signature"
-            >
-              <PenTool className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Signature</span>
-            </button>
-
-            <input
-              ref={imageUploadInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/*"
-              className="hidden"
-              onChange={handleImageUpload}
-            />
-          </div>
-        )}
-
-        {selectedFile && (
-          /* Undo / Redo & Zoom & Export */
-          <div className="flex items-center gap-2">
-            <div className="hidden lg:flex items-center gap-1">
+          /* Undo / Redo & Zoom & Export (top row on mobile) */
+          <div className="flex items-center gap-1.5 sm:gap-2 md:order-3">
+            <div className="flex items-center gap-0.5">
               <button
                 type="button"
                 onClick={handleUndo}
                 disabled={historyIndex <= 0}
-                className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 cursor-pointer"
+                className="p-2 md:p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 cursor-pointer"
                 title="Undo"
               >
                 <Undo2 className="w-4 h-4" />
@@ -852,7 +805,7 @@ export const EditPdfPage: React.FC = () => {
                 type="button"
                 onClick={handleRedo}
                 disabled={historyIndex >= history.length - 1}
-                className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 cursor-pointer"
+                className="p-2 md:p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 cursor-pointer"
                 title="Redo"
               >
                 <Redo2 className="w-4 h-4" />
@@ -860,22 +813,22 @@ export const EditPdfPage: React.FC = () => {
             </div>
 
             {/* Zoom Controls */}
-            <div className="hidden sm:flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-xl text-xs text-zinc-600 dark:text-zinc-300">
+            <div className="flex items-center gap-0.5 bg-zinc-100 dark:bg-zinc-800 px-1.5 sm:px-2 py-1 rounded-xl text-xs text-zinc-600 dark:text-zinc-300">
               <button
                 type="button"
-                onClick={() => setZoomScale(s => Math.max(0.6, parseFloat((s - 0.25).toFixed(2))))}
-                className="p-1 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
+                onClick={() => setZoomScale(s => Math.max(0.3, parseFloat((s - 0.15).toFixed(2))))}
+                className="p-1.5 md:p-1 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
                 title="Zoom Out"
               >
                 <ZoomOut className="w-3.5 h-3.5" />
               </button>
-              <span className="font-mono text-[11px] w-10 text-center font-bold">
+              <span className="font-mono text-[11px] w-9 sm:w-10 text-center font-bold">
                 {Math.round(zoomScale * 100)}%
               </span>
               <button
                 type="button"
-                onClick={() => setZoomScale(s => Math.min(2.5, parseFloat((s + 0.25).toFixed(2))))}
-                className="p-1 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
+                onClick={() => setZoomScale(s => Math.min(2.5, parseFloat((s + 0.15).toFixed(2))))}
+                className="p-1.5 md:p-1 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
                 title="Zoom In"
               >
                 <ZoomIn className="w-3.5 h-3.5" />
@@ -885,14 +838,132 @@ export const EditPdfPage: React.FC = () => {
             <button
               type="button"
               onClick={handleExport}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+              title="Download PDF"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Download PDF</span>
+              <span className="hidden sm:inline">Download PDF</span>
             </button>
           </div>
         )}
+
+        {selectedFile && (
+          /* Editor Toolbar Tools: full-width scrollable row on mobile */
+          <div className="order-last md:order-2 w-full md:w-auto overflow-x-auto md:overflow-visible">
+            <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-200 dark:border-zinc-700 w-max mx-auto md:mx-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentTool('select');
+                  setActiveBlockId(null);
+                }}
+                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-2.5 md:py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  currentTool === 'select'
+                    ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-xs ring-1 ring-indigo-500/20'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
+                }`}
+                title="Select / Move Elements"
+              >
+                <MousePointer className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                <span>Select</span>
+              </button>
+
+              {/* EDIT TEXT */}
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentTool('editText');
+                  setSelectedElementId(null);
+                }}
+                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-2.5 md:py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  currentTool === 'editText'
+                    ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-xs ring-1 ring-indigo-500/20'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
+                }`}
+                title="Edit Existing Text in PDF"
+              >
+                <FileText className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                <span>Edit Text</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentTool('text');
+                  setActiveBlockId(null);
+                }}
+                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-2.5 md:py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  currentTool === 'text'
+                    ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-xs ring-1 ring-indigo-500/20'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
+                }`}
+                title="Add New Text Box to Page"
+              >
+                <Type className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                <span>Add Text</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => imageUploadInputRef.current?.click()}
+                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2.5 md:py-1.5 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50 cursor-pointer"
+                title="Add Image to Page"
+              >
+                <ImageIcon className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                <span>Add Image</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsSignatureModalOpen(true)}
+                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2.5 md:py-1.5 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50 cursor-pointer"
+                title="Add Signature"
+              >
+                <PenTool className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                <span>Signature</span>
+              </button>
+
+              <input
+                ref={imageUploadInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Mobile-only strip: open Pages / Inspector drawers */}
+      {selectedFile && !resultData && !isExporting && (
+        <div className="md:hidden flex items-center justify-between gap-2 px-3 py-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
+          <button
+            type="button"
+            onClick={() => {
+              setIsPagesOpen(true);
+              setIsInspectorOpen(false);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-200 cursor-pointer"
+          >
+            <Layers className="w-4 h-4" />
+            <span>
+              Pages ({currentPage}/{pageCount})
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsInspectorOpen(true);
+              setIsPagesOpen(false);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-200 cursor-pointer"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            <span>Inspector</span>
+          </button>
+        </div>
+      )}
 
       {/* Eyedropper mode banner */}
       {isEyeDropperMode && (
@@ -937,7 +1008,7 @@ export const EditPdfPage: React.FC = () => {
       )}
 
       {resultData ? (
-        <div className="p-8 max-w-xl mx-auto my-auto w-full">
+        <div className="p-4 sm:p-8 max-w-xl mx-auto my-auto w-full">
           <DownloadButton
             data={resultData}
             fileName={resultFileName}
@@ -957,13 +1028,13 @@ export const EditPdfPage: React.FC = () => {
         </div>
       ) : !selectedFile ? (
         /* Empty Upload View */
-        <div className="max-w-4xl mx-auto px-4 py-12 space-y-6 flex-1 flex flex-col justify-center">
+        <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12 space-y-6 flex-1 flex flex-col justify-center">
           <div className="text-center space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-xs font-semibold">
               <Sparkles className="w-3.5 h-3.5" />
               <span>100% Client-Side Visual PDF & Text Editing</span>
             </div>
-            <h2 className="text-3xl font-extrabold text-zinc-900 dark:text-white tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-white tracking-tight">
               Visual PDF Editor & Existing Text Modifier
             </h2>
             <p className="text-sm text-zinc-500 max-w-lg mx-auto">
@@ -995,13 +1066,36 @@ export const EditPdfPage: React.FC = () => {
           <PrivacyBanner />
         </div>
       ) : (
-        /* Full Tri-Pane Editor: Left Thumbnail Sidebar, Center Canvas, Right Properties */
-        <div className="flex-1 flex overflow-hidden bg-zinc-100/60 dark:bg-zinc-950 relative">
-          {/* Left Thumbnail Sidebar */}
-          <aside className="w-48 sm:w-56 border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col shrink-0 overflow-hidden">
+        /* Editor: Desktop = 3 columns | Mobile = full-width canvas + drawers */
+        <div className="flex-1 flex md:overflow-hidden bg-zinc-100/60 dark:bg-zinc-950 relative">
+          {/* Mobile backdrop for drawers */}
+          {(isPagesOpen || isInspectorOpen) && (
+            <div
+              className="md:hidden fixed inset-0 bg-black/50 z-40"
+              onClick={() => {
+                setIsPagesOpen(false);
+                setIsInspectorOpen(false);
+              }}
+            />
+          )}
+
+          {/* Left Thumbnail Sidebar (mobile: slide-in drawer) */}
+          <aside
+            className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ${
+              isPagesOpen ? 'translate-x-0' : '-translate-x-full'
+            } md:static md:translate-x-0 md:z-auto md:w-56 border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col shrink-0 overflow-hidden`}
+          >
             <div className="p-3 border-b border-zinc-100 dark:border-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 flex items-center justify-between">
               <span>Pages ({pageCount})</span>
-              <span className="font-mono text-[10px] text-zinc-400">Click to edit</span>
+              <span className="hidden md:inline font-mono text-[10px] text-zinc-400">Click to edit</span>
+              <button
+                type="button"
+                onClick={() => setIsPagesOpen(false)}
+                className="md:hidden p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-3 space-y-3">
@@ -1018,6 +1112,7 @@ export const EditPdfPage: React.FC = () => {
                       setCurrentPage(pageNum);
                       setSelectedElementId(null);
                       setActiveBlockId(null);
+                      setIsPagesOpen(false);
                     }}
                     className={`group relative rounded-xl border p-2 cursor-pointer transition-all ${
                       isCurrent
@@ -1060,7 +1155,7 @@ export const EditPdfPage: React.FC = () => {
                   setSelectedElementId(null);
                 }}
                 disabled={currentPage <= 1}
-                className="p-1 rounded text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 cursor-pointer"
+                className="p-1.5 rounded text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -1075,7 +1170,7 @@ export const EditPdfPage: React.FC = () => {
                   setSelectedElementId(null);
                 }}
                 disabled={currentPage >= pageCount}
-                className="p-1 rounded text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 cursor-pointer"
+                className="p-1.5 rounded text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 cursor-pointer"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -1083,7 +1178,7 @@ export const EditPdfPage: React.FC = () => {
           </aside>
 
           {/* Center Stage: Viewport Canvas + Interactive Annotations Layer */}
-          <main className="flex-1 overflow-auto flex flex-col items-center p-6 md:p-10 select-none relative">
+          <main className="flex-1 min-w-0 overflow-auto flex flex-col items-center p-3 md:p-10 select-none relative">
             {/* Scanned PDF warning notice if Edit Text tool is active and no text found */}
             {currentTool === 'editText' && !isExtractingText && currentTextBlocks.length === 0 && (
               <div className="mb-4 px-4 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-xs font-semibold flex items-center gap-2 shadow-xs max-w-lg w-full">
@@ -1110,7 +1205,7 @@ export const EditPdfPage: React.FC = () => {
             <div
               ref={containerRef}
               onClick={handlePageContainerClick}
-              className={`relative bg-white shadow-2xl rounded-sm transition-all ${
+              className={`relative bg-white shadow-2xl rounded-sm transition-all shrink-0 ${
                 isEyeDropperMode ? 'cursor-crosshair' : currentTool === 'text' ? 'cursor-text' : 'cursor-default'
               }`}
               style={{
@@ -1250,7 +1345,7 @@ export const EditPdfPage: React.FC = () => {
                 return (
                   <div
                     key={el.id}
-                    onMouseDown={e => startDrag(el, e)}
+                    onPointerDown={e => startDrag(el, e)}
                     className={`absolute group cursor-move transition-shadow ${
                       isSelected
                         ? 'ring-2 ring-indigo-500 border border-indigo-500 shadow-md z-30'
@@ -1261,6 +1356,7 @@ export const EditPdfPage: React.FC = () => {
                       top: screenY,
                       width: screenW,
                       height: screenH,
+                      touchAction: 'none',
                     }}
                   >
                     {/* Element Render Body */}
@@ -1290,11 +1386,12 @@ export const EditPdfPage: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Resize Handle (bottom-right) */}
+                    {/* Resize Handle (bottom-right) - bigger touch target on mobile */}
                     {isSelected && (
                       <div
-                        onMouseDown={e => startResize(el, 'se', e)}
-                        className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-indigo-600 border-2 border-white rounded-full cursor-nwse-resize z-40 shadow-sm"
+                        onPointerDown={e => startResize(el, 'se', e)}
+                        className="absolute -bottom-2.5 -right-2.5 w-6 h-6 md:-bottom-1.5 md:-right-1.5 md:w-3.5 md:h-3.5 bg-indigo-600 border-2 border-white rounded-full cursor-nwse-resize z-40 shadow-sm"
+                        style={{ touchAction: 'none' }}
                         title="Drag to resize"
                       />
                     )}
@@ -1304,9 +1401,13 @@ export const EditPdfPage: React.FC = () => {
             </div>
           </main>
 
-          {/* Right Properties Panel */}
-          <aside className="w-64 sm:w-72 border-l border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col shrink-0 overflow-y-auto">
-            <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+          {/* Right Properties Panel (mobile: bottom sheet) */}
+          <aside
+            className={`fixed inset-x-0 bottom-0 z-50 max-h-[75dvh] rounded-t-2xl shadow-2xl transform transition-transform duration-300 ${
+              isInspectorOpen ? 'translate-y-0' : 'translate-y-full'
+            } md:static md:translate-y-0 md:z-auto md:max-h-none md:rounded-none md:shadow-none md:w-72 border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col shrink-0 overflow-y-auto`}
+          >
+            <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between sticky top-0 bg-white dark:bg-zinc-900 z-10">
               <h4 className="font-bold text-xs uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                 {activeBlock
                   ? 'Edit Existing Text'
@@ -1314,16 +1415,26 @@ export const EditPdfPage: React.FC = () => {
                   ? 'Element Properties'
                   : 'Inspector'}
               </h4>
-              {selectedElement && (
+              <div className="flex items-center gap-1">
+                {selectedElement && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteElement(selectedElement.id)}
+                    className="p-1 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 cursor-pointer"
+                    title="Delete element"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => handleDeleteElement(selectedElement.id)}
-                  className="p-1 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 cursor-pointer"
-                  title="Delete element"
+                  onClick={() => setIsInspectorOpen(false)}
+                  className="md:hidden p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                  title="Close"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <X className="w-4 h-4" />
                 </button>
-              )}
+              </div>
             </div>
 
             <div className="p-4 space-y-5 text-xs">
